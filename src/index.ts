@@ -20,6 +20,7 @@ import {
   PrivateKey,
 } from 'snarkyjs';
 import readline from 'readline';
+import util from 'util';
 
 class Word {
   value: Field[];
@@ -219,11 +220,11 @@ export async function run() {
     input: process.stdin, //or fileStream
     output: process.stdout,
   });
-  let playerInput = 'o';
-  rl.question(
-    'Player 1 - please choose your word: ',
-    (answer) => (playerInput = answer)
-  );
+  let playerInput = await new Promise<string>((resolve) => {
+    rl.question('Player 1 - Please choose your word: ', resolve);
+  });
+  console.log(playerInput);
+  const test = 'o';
   let word = Word.fromString(playerInput);
 
   console.log('Deploying contract');
@@ -249,9 +250,10 @@ export async function run() {
     .wait();
 
   for (let i = 0; i < 10; i++) {
-    let inputGuess = 'o';
-    rl.question('Please enter your guess: ', (answer) => (inputGuess = answer));
-    let guessLetter = Word.charToField(inputGuess);
+    let playerInput = await new Promise<string>((resolve) => {
+      rl.question('Player 2 - Please guess a letter: ', resolve);
+    });
+    let guessLetter = Word.charToField(playerInput);
     await Mina.transaction(player2, async () => {
       const signature = Signature.create(player2, [guessLetter]);
       await snappInstance.makeGuess(
@@ -285,8 +287,7 @@ export async function run() {
     );
     console.log(latestGuess.toString());
   }
-  rl.close();
 }
 
-run();
+run().catch((e) => console.log(e));
 shutdown();
